@@ -282,11 +282,11 @@
                     <div class="section-title"><span class="icon">🔑</span>GitHub 配置</div>
                     <div class="form-group">
                         <label>GitHub 用户名</label>
-                        <input type="text" id="deploy-username" placeholder="你的 GitHub 用户名">
+                        <input type="text" id="deploy-username" value="lchenfei44-dev" placeholder="你的 GitHub 用户名">
                     </div>
                     <div class="form-group">
                         <label>Personal Access Token（请使用 Classic Token）</label>
-                        <input type="password" id="deploy-token" value="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" placeholder="ghp_ 开头的 Token">
+                        <input type="password" id="deploy-token" value="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" placeholder="ghp_ 开头的 Token">
                         <div class="tip">
                             ⚠️ 请使用 <strong>Classic（经典）Token</strong>，不要使用 Fine-grained（精细权限）Token<br>
                             Classic Token 生成：GitHub → Settings → Developer settings → 
@@ -355,11 +355,11 @@
                     <div class="deploy-steps" id="deploy-steps" style="display: none;">
                         <div class="deploy-step" id="step-1">
                             <div class="deploy-step-icon">1</div>
-                            <div class="deploy-step-text" id="step-1-text">创建 GitHub 仓库...</div>
+                            <div class="deploy-step-text" id="step-1-text">删除旧仓库...</div>
                         </div>
                         <div class="deploy-step" id="step-2">
                             <div class="deploy-step-icon">2</div>
-                            <div class="deploy-step-text">清空旧文件...</div>
+                            <div class="deploy-step-text">创建新仓库...</div>
                         </div>
                         <div class="deploy-step" id="step-3">
                             <div class="deploy-step-icon">3</div>
@@ -770,6 +770,20 @@
             return data;
         }
 
+        async function deleteRepo(username, token, repoName) {
+            try {
+                await githubApi('/repos/' + username + '/' + repoName, token, {
+                    method: 'DELETE'
+                });
+                return true;
+            } catch (e) {
+                if (e.message.includes('Not Found') || e.message.includes('404')) {
+                    return false;
+                }
+                throw e;
+            }
+        }
+
         async function createRepo(username, token, repoName, description, isPrivate) {
             try {
                 const data = await githubApi('/user/repos', token, {
@@ -918,22 +932,12 @@
             document.getElementById('deploy-steps').style.display = 'block';
 
             try {
-                let repo;
                 setStepStatus(1, 'active');
-                if (mode === 'new') {
-                    repo = await createRepo(username, token, repoName, description, isPrivate);
-                } else {
-                    repo = await githubApi('/repos/' + username + '/' + repoName, token);
-                }
+                await deleteRepo(username, token, repoName);
                 setStepStatus(1, 'done');
 
                 setStepStatus(2, 'active');
-                try {
-                    const removedCount = await clearRepoContents(username, token, repoName);
-                    console.log('已删除旧文件数:', removedCount);
-                } catch (e) {
-                    console.warn('清空仓库提示:', e.message);
-                }
+                const repo = await createRepo(username, token, repoName, description, isPrivate);
                 setStepStatus(2, 'done');
 
                 setStepStatus(3, 'active');
