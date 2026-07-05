@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站配置生成器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; color: #fff; }
+
+        .header { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 100; }
+        .header h1 { font-size: 20px; background: linear-gradient(135deg, #ffd700, #ff6b6b, #4ecdc4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header-actions { display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; border-radius: 24px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: #fff; box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4); }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(17, 153, 142, 0.5); }
+
+        .container { display: flex; min-height: calc(100vh - 65px); }
+
+        .config-panel { width: 45%; padding: 20px; overflow-y: auto; max-height: calc(100vh - 65px); border-right: 1px solid rgba(255,255,255,0.1); }
+        .preview-panel { width: 55%; padding: 20px; overflow-y: auto; max-height: calc(100vh - 65px); display: flex; flex-direction: column; align-items: center; }
+
+        .section { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); transition: all 0.3s ease; }
+        .section:hover { border-color: rgba(255, 215, 0, 0.3); }
+        .section-title { font-size: 15px; font-weight: bold; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: #ffd700; }
+        .section-title .icon { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 14px; border-radius: 16px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; outline: none; transition: all 0.3s ease; font-family: inherit; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #ffd700; box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1); }
+        .form-group textarea { resize: vertical; min-height: 100px; line-height: 1.6; border-radius: 16px; }
+        .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.4); }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+
+        .preview-title { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .phone-frame { width: 375px; height: 700px; background: #000; border-radius: 40px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1); position: relative; }
+        .phone-notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 120px; height: 28px; background: #000; border-radius: 0 0 16px 16px; z-index: 10; }
+        .phone-screen { width: 100%; height: 100%; border-radius: 30px; overflow: hidden; background: #fff; }
+        .phone-screen iframe { width: 100%; height: 100%; border: none; }
+
+        .tip { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 6px; line-height: 1.5; }
+        .tip code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+
+        .tabs { display: flex; gap: 6px; margin-bottom: 16px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 16px; }
+        .tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; color: rgba(255,255,255,0.6); font-weight: 500; }
+        .tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .pulse { animation: pulse 0.3s ease; }
+
+        .config-panel::-webkit-scrollbar, .preview-panel::-webkit-scrollbar { width: 8px; }
+        .config-panel::-webkit-scrollbar-track, .preview-panel::-webkit-scrollbar-track { background: transparent; }
+        .config-panel::-webkit-scrollbar-thumb, .preview-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .config-panel::-webkit-scrollbar-thumb:hover, .preview-panel::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(0,0,0,0.85); color: #fff; padding: 14px 28px; border-radius: 24px; font-size: 14px; opacity: 0; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 2000; pointer-events: none; backdrop-filter: blur(10px); }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .deploy-steps { margin-top: 10px; }
+        .deploy-step { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; background: rgba(255,255,255,0.05); transition: all 0.3s ease; }
+        .deploy-step.active { background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.3); }
+        .deploy-step.done { background: rgba(17, 153, 142, 0.1); border: 1px solid rgba(17, 153, 142, 0.2); }
+        .deploy-step.error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .deploy-step-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .deploy-step.active .deploy-step-icon { background: linear-gradient(135deg, #667eea, #764ba2); animation: pulse 1s infinite; }
+        .deploy-step.done .deploy-step-icon { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .deploy-step.error .deploy-step-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .deploy-step-text { font-size: 12px; color: rgba(255,255,255,0.8); }
+        .deploy-step.active .deploy-step-text { color: #fff; }
+        .deploy-step.done .deploy-step-text { color: #38ef7d; }
+        .deploy-step.error .deploy-step-text { color: #f87171; }
+
+        .deploy-result { margin-top: 16px; padding: 16px; border-radius: 16px; background: rgba(17, 153, 142, 0.1); border: 1px solid rgba(17, 153, 142, 0.3); display: none; }
+        .deploy-result.show { display: block; animation: fadeIn 0.3s ease; }
+        .deploy-result h4 { color: #38ef7d; font-size: 14px; margin-bottom: 10px; }
+        .deploy-result a { color: #60a5fa; word-break: break-all; font-size: 12px; display: block; margin-bottom: 8px; text-decoration: underline; }
+        .deploy-result .copy-btn { margin-top: 8px; padding: 6px 14px; border-radius: 20px; background: rgba(102, 126, 234, 0.3); border: 1px solid rgba(102, 126, 234, 0.5); color: #fff; font-size: 11px; cursor: pointer; transition: all 0.3s ease; }
+        .deploy-result .copy-btn:hover { background: rgba(102, 126, 234, 0.5); }
+
+        .btn-github { background: linear-gradient(135deg, #24292e 0%, #0366d6 100%); color: #fff; box-shadow: 0 4px 15px rgba(3, 102, 214, 0.4); }
+        .btn-github:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(3, 102, 214, 0.5); }
+        .btn-github:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinning { animation: spin 1s linear infinite; display: inline-block; }
+
+        @media (max-width: 1024px) {
+            .container { flex-direction: column; }
+            .config-panel, .preview-panel { width: 100%; max-height: none; border-right: none; }
+            .phone-frame { width: 100%; max-width: 375px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✨ 网站配置生成器</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="resetConfig()">🔄 重置</button>
+            <button class="btn btn-primary" onclick="previewSite()">👁️ 预览</button>
+            <button class="btn btn-success" onclick="exportSite()">📥 导出网站</button>
+            <button class="btn btn-github" onclick="switchTab('deploy', document.querySelectorAll('.tab')[3])">🚀 GitHub部署</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="config-panel">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('basic', this)">基础设置</div>
+                <div class="tab" onclick="switchTab('login', this)">登录页</div>
+                <div class="tab" onclick="switchTab('content', this)">内容页</div>
+                <div class="tab" onclick="switchTab('deploy', this)">一键部署</div>
+            </div>
+
+            <div class="tab-content active" id="tab-basic">
+                <div class="section">
+                    <div class="section-title"><span class="icon">📅</span>日期设置</div>
+                    <div class="form-group">
+                        <label>日期标题</label>
+                        <input type="text" id="cfg-dateTitle" value="今日爆款文章来袭" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>日期内容</label>
+                        <input type="date" id="cfg-date" value="2026-07-04" oninput="autoPreview()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">🔐</span>密码设置</div>
+                    <div class="form-group">
+                        <label>查看密码</label>
+                        <input type="text" id="cfg-password" value="0908" oninput="autoPreview()">
+                        <div class="tip">用户输入此密码才能查看内容</div>
+                    </div>
+                    <div class="form-group">
+                        <label>页面标题（浏览器标签）</label>
+                        <input type="text" id="cfg-pageTitle" value="176期精准推荐号" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>顶部标题</label>
+                        <input type="text" id="cfg-headerTitle" value="176期精准推荐号" oninput="autoPreview()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">🎨</span>主题配色</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>主色调</label>
+                            <input type="color" id="cfg-color1" value="#b87333" style="height: 42px; padding: 4px; cursor: pointer;" oninput="autoPreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>副色调</label>
+                            <input type="color" id="cfg-color2" value="#8b4513" style="height: 42px; padding: 4px; cursor: pointer;" oninput="autoPreview()">
+                        </div>
+                    </div>
+                    <div class="tip">设置页面背景渐变色</div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-login">
+                <div class="section">
+                    <div class="section-title"><span class="icon">📝</span>标题区域</div>
+                    <div class="form-group">
+                        <label>大标题</label>
+                        <input type="text" id="cfg-mainTitle" value="爆款文章" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>副标题</label>
+                        <input type="text" id="cfg-mainDesc" value="输入密码即可查看今日爆款文章" oninput="autoPreview()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">🎫</span>卡片区域</div>
+                    <div class="form-group">
+                        <label>卡片标题</label>
+                        <input type="text" id="cfg-cardTitle" value="输入查看密码" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>输入框占位符</label>
+                        <input type="text" id="cfg-placeholder" value="请输入密码" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>按钮文字</label>
+                        <input type="text" id="cfg-btnText" value="查看" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>密码错误提示</label>
+                        <input type="text" id="cfg-errorText" value="密码错误，请重试" oninput="autoPreview()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">💰</span>价格与提示</div>
+                    <div class="form-group">
+                        <label>价格信息</label>
+                        <input type="text" id="cfg-price" value="收米标准：38.00 米" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>提示文字1</label>
+                        <input type="text" id="cfg-info1" value="付费好后联系客服拿密码" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>提示文字2</label>
+                        <input type="text" id="cfg-info2" value="通过密码输入查看看今日资讯" oninput="autoPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>提示文字3</label>
+                        <input type="text" id="cfg-info3" value="长按二维码扫码付款" oninput="autoPreview()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-content">
+                <div class="section">
+                    <div class="section-title"><span class="icon">✅</span>解锁头部</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>解锁标题</label>
+                            <input type="text" id="cfg-unlockTitle" value="内容已解锁" oninput="autoPreview()">
+                        </div>
+                        <div class="form-group">
+                            <label>解锁副标题</label>
+                            <input type="text" id="cfg-unlockSubtitle" value="第176期精准号码" oninput="autoPreview()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>重新验证按钮文字</label>
+                        <input type="text" id="cfg-resetText" value="重新验证" oninput="autoPreview()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">📄</span>详细内容（HTML）</div>
+                    <div class="form-group">
+                        <label>内容正文</label>
+                        <textarea id="cfg-content" oninput="autoPreview()"><h4>🎁 第176期精准号码</h4>
+<p>感谢您的支持！以下是本期推荐内容：</p>
+
+<h4>📌 本期推荐号码</h4>
+<ul>
+<li><strong>推荐一</strong>：05 12 18 24 30 35 + 08</li>
+<li><strong>推荐二</strong>：03 10 16 22 28 33 + 12</li>
+<li><strong>推荐三</strong>：07 14 20 26 32 36 + 06</li>
+</ul>
+
+<h4>💡 温馨提示</h4>
+<ul>
+<li>以上号码仅供参考，请理性对待</li>
+<li>如有任何问题，请联系客服</li>
+<li>感谢您的信任与支持</li>
+</ul>
+
+<h4>📞 联系方式</h4>
+<p>客服微信：xxxxxx</p>
+<p>工作时间：9:00 - 21:00</p></textarea>
+                        <div class="tip">支持 HTML 标签：<code>&lt;h4&gt;</code> <code>&lt;p&gt;</code> <code>&lt;ul&gt;</code> <code>&lt;li&gt;</code> <code>&lt;strong&gt;</code></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">📋</span>底部文字</div>
+                    <div class="form-group">
+                        <label>页脚文字</label>
+                        <input type="text" id="cfg-footer" value="感谢您的支持！如有问题请联系客服" oninput="autoPreview()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-deploy">
+                <div class="section">
+                    <div class="section-title"><span class="icon">🔑</span>GitHub 配置</div>
+                    <div class="form-group">
+                        <label>GitHub 用户名</label>
+                        <input type="text" id="deploy-username" placeholder="你的 GitHub 用户名">
+                    </div>
+                    <div class="form-group">
+                        <label>Personal Access Token（请使用 Classic Token）</label>
+                        <input type="password" id="deploy-token" value="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" placeholder="ghp_ 开头的 Token">
+                        <div class="tip">
+                            ⚠️ 请使用 <strong>Classic（经典）Token</strong>，不要使用 Fine-grained（精细权限）Token<br>
+                            Classic Token 生成：GitHub → Settings → Developer settings → 
+                            <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" style="color:#60a5fa;">Tokens (classic)</a>
+                            → 勾选 <code>repo</code> 权限 → Generate
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">📦</span>仓库设置</div>
+                    <div class="form-group">
+                        <label>部署模式</label>
+                        <div style="display: flex; gap: 10px;">
+                            <label style="flex: 1; padding: 10px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.3s ease;">
+                                <input type="radio" name="deploy-mode" value="new" checked onchange="onDeployModeChange()" style="margin-right: 6px;">
+                                <span style="font-size: 12px;">自动创建新仓库</span>
+                            </label>
+                            <label style="flex: 1; padding: 10px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.3s ease;">
+                                <input type="radio" name="deploy-mode" value="existing" onchange="onDeployModeChange()" style="margin-right: 6px;">
+                                <span style="font-size: 12px;">上传到已有仓库</span>
+                            </label>
+                        </div>
+                        <div class="tip" id="deploy-mode-tip">
+                            💡 推荐使用「上传到已有仓库」，提前在 GitHub 网页端手动创建好空仓库，更稳定
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>仓库名称</label>
+                        <input type="text" id="deploy-repo" value="my-password-site" placeholder="例如：my-password-site">
+                    </div>
+                    <div class="form-group" id="repo-desc-group">
+                        <label>仓库描述（可选）</label>
+                        <input type="text" id="deploy-desc" value="密码保护的内容页面" placeholder="仓库描述">
+                    </div>
+                    <div class="form-group" id="repo-private-group">
+                        <label>
+                            <input type="checkbox" id="deploy-private" style="width: auto; margin-right: 6px;">
+                            设为私有仓库
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">🖼️</span>二维码图片</div>
+                    <div class="form-group">
+                        <label>上传支付二维码图片</label>
+                        <input type="file" id="deploy-qr-image" accept="image/*" style="display: none;" onchange="handleQrImageUpload(event)">
+                        <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="document.getElementById('deploy-qr-image').click()">📷 选择图片</button>
+                        <div class="tip">支持 JPG、PNG、GIF 格式，图片会自动转成 Base64 内嵌到网站中</div>
+                    </div>
+                    <div id="qr-image-preview" style="display: none; margin-top: 10px; text-align: center;">
+                        <img id="qr-preview-img" src="" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2);">
+                        <p style="font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 6px;">已选择图片</p>
+                        <button type="button" class="copy-btn" onclick="removeQrImage()">✕ 移除图片</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span class="icon">🚀</span>开始部署</div>
+                    <button class="btn btn-github" style="width: 100%; padding: 14px; font-size: 15px;" id="deploy-btn" onclick="deployToGithub()">
+                        🚀 一键部署到 GitHub Pages
+                    </button>
+                    <div class="tip">部署成功后将生成一个可以直接访问的网站链接</div>
+
+                    <div class="deploy-steps" id="deploy-steps" style="display: none;">
+                        <div class="deploy-step" id="step-1">
+                            <div class="deploy-step-icon">1</div>
+                            <div class="deploy-step-text" id="step-1-text">创建 GitHub 仓库...</div>
+                        </div>
+                        <div class="deploy-step" id="step-2">
+                            <div class="deploy-step-icon">2</div>
+                            <div class="deploy-step-text">清空旧文件...</div>
+                        </div>
+                        <div class="deploy-step" id="step-3">
+                            <div class="deploy-step-icon">3</div>
+                            <div class="deploy-step-text">上传网站文件...</div>
+                        </div>
+                        <div class="deploy-step" id="step-4">
+                            <div class="deploy-step-icon">4</div>
+                            <div class="deploy-step-text">启用 GitHub Pages...</div>
+                        </div>
+                        <div class="deploy-step" id="step-5">
+                            <div class="deploy-step-icon">5</div>
+                            <div class="deploy-step-text">等待 Pages 部署生效...</div>
+                        </div>
+                    </div>
+
+                    <div class="deploy-result" id="deploy-result">
+                        <h4>✅ 部署成功！</h4>
+                        <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 10px;">你的网站已经部署到 GitHub Pages：</p>
+                        <a id="deploy-url" href="#" target="_blank"></a>
+                        <button class="copy-btn" onclick="copyDeployUrl()">📋 复制链接</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <div class="preview-title">📱 实时预览（手机端）</div>
+            <div class="phone-frame">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                    <iframe id="preview-frame" srcdoc=""></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let previewTimeout = null;
+
+        function autoPreview() {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(() => {
+                updatePreview();
+            }, 300);
+        }
+
+        function getConfig() {
+            return {
+                dateTitle: document.getElementById('cfg-dateTitle').value,
+                date: document.getElementById('cfg-date').value,
+                password: document.getElementById('cfg-password').value,
+                pageTitle: document.getElementById('cfg-pageTitle').value,
+                headerTitle: document.getElementById('cfg-headerTitle').value,
+                color1: document.getElementById('cfg-color1').value,
+                color2: document.getElementById('cfg-color2').value,
+                mainTitle: document.getElementById('cfg-mainTitle').value,
+                mainDesc: document.getElementById('cfg-mainDesc').value,
+                cardTitle: document.getElementById('cfg-cardTitle').value,
+                placeholder: document.getElementById('cfg-placeholder').value,
+                btnText: document.getElementById('cfg-btnText').value,
+                errorText: document.getElementById('cfg-errorText').value,
+                price: document.getElementById('cfg-price').value,
+                info1: document.getElementById('cfg-info1').value,
+                info2: document.getElementById('cfg-info2').value,
+                info3: document.getElementById('cfg-info3').value,
+                unlockTitle: document.getElementById('cfg-unlockTitle').value,
+                unlockSubtitle: document.getElementById('cfg-unlockSubtitle').value,
+                resetText: document.getElementById('cfg-resetText').value,
+                content: document.getElementById('cfg-content').value,
+                footer: document.getElementById('cfg-footer').value
+            };
+        }
+
+        function generateSiteHTML(cfg) {
+            return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>${escapeHtml(cfg.pageTitle)}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(180deg, ${cfg.color1} 0%, ${cfg.color2} 100%); padding-top: env(safe-area-inset-top); min-height: 100vh; }
+        .header { background: rgba(0,0,0,0.1); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { color: #fff; font-size: 13px; font-weight: bold; flex: 1; text-align: center; }
+        .close { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; cursor: pointer; }
+        .main { padding: 10px; }
+        .date-box { text-align: center; margin-bottom: 10px; }
+        .date-box .t1 { color: #ffd700; font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+        .date-box .t2 { color: rgba(255,255,255,0.7); font-size: 11px; }
+        .title-box { text-align: center; margin-bottom: 6px; }
+        .title-box h2 { color: #ffd700; font-size: 22px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); letter-spacing: 4px; }
+        .desc { text-align: center; color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 10px; }
+        .card { background: #fff8dc; border-radius: 8px; padding: 14px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card-title { text-align: center; color: #333; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+        .form-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+        .form-row input { flex: 1; padding: 7px 8px; border-radius: 3px; border: 1px solid #d4af37; font-size: 12px; outline: none; }
+        .form-row input:focus { border-color: ${cfg.color2}; }
+        .form-row button { padding: 7px 14px; border-radius: 3px; background: ${cfg.color1}; border: none; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .form-row button:disabled { opacity: 0.7; }
+        .error { color: #dc2626; font-size: 10px; text-align: center; margin-bottom: 10px; display: none; }
+        .info-box { text-align: center; margin-bottom: 10px; }
+        .info-box p { color: #555; font-size: 11px; line-height: 1.6; margin-bottom: 3px; }
+        .info-box .price { color: #dc2626; font-size: 15px; font-weight: bold; }
+        .qr-box { text-align: center; }
+        .qr-box .qr-wrap { width: 120px; height: 140px; margin: 0 auto; background: #fff; border-radius: 4px; overflow: hidden; }
+        .qr-box .qr-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .content-card { background: #fff8dc; border-radius: 8px; padding: 14px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .content-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+        .check-icon { width: 28px; height: 28px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; }
+        .content-head h3 { color: #333; font-size: 14px; font-weight: bold; }
+        .content-head p { color: #666; font-size: 10px; }
+        .content-head button { margin-left: auto; padding: 4px 8px; border-radius: 2px; background: #e5e7eb; border: none; color: #666; font-size: 10px; cursor: pointer; }
+        .content-area { background: rgba(0,0,0,0.03); border-radius: 4px; padding: 10px; max-height: 40vh; overflow-y: auto; }
+        .content-area h4 { color: ${cfg.color2}; font-size: 12px; font-weight: bold; margin: 10px 0 5px; }
+        .content-area h4:first-child { margin-top: 0; }
+        .content-area p { color: #555; font-size: 11px; line-height: 1.5; margin-bottom: 3px; }
+        .content-area ul { color: #555; font-size: 11px; line-height: 1.5; padding-left: 14px; }
+        .content-area li { margin-bottom: 2px; }
+        .footer-text { text-align: center; color: #666; font-size: 10px; margin-top: 10px; }
+        .loading-text { display: flex; align-items: center; gap: 2px; }
+        .loading-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .card, .content-card { animation: fadeIn 0.2s ease-out; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="close" onclick="location.reload()">✕</div>
+        <h1>${escapeHtml(cfg.headerTitle)}</h1>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <div class="main">
+        <div id="login-box">
+            <div class="date-box">
+                <div class="t1">${escapeHtml(cfg.dateTitle)}</div>
+                <div class="t2">${escapeHtml(cfg.date)}</div>
+            </div>
+            <div class="title-box"><h2>${escapeHtml(cfg.mainTitle)}</h2></div>
+            <div class="desc">${escapeHtml(cfg.mainDesc)}</div>
+            
+            <div class="card">
+                <div class="card-title">${escapeHtml(cfg.cardTitle)}</div>
+                <div class="form-row">
+                    <input type="password" id="pwd" placeholder="${escapeHtml(cfg.placeholder)}" maxlength="20" autofocus>
+                    <button id="btn" onclick="check()">${escapeHtml(cfg.btnText)}</button>
+                </div>
+                <div id="err" class="error"></div>
+                
+                <div class="info-box">
+                    <p>${escapeHtml(cfg.info1)}</p>
+                    <p class="price">${escapeHtml(cfg.price)}</p>
+                    <p>${escapeHtml(cfg.info2)}</p>
+                    <p>${escapeHtml(cfg.info3)}</p>
+                </div>
+                
+                <div class="qr-box">
+                    <div class="qr-wrap"><img src="7f0e523db245d9c89476afaff8c4f769.jpg?v=1" alt="支付二维码"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-box" style="display: none;">
+            <div class="content-card">
+                <div class="content-head">
+                    <div class="check-icon">✓</div>
+                    <div>
+                        <h3>${escapeHtml(cfg.unlockTitle)}</h3>
+                        <p>${escapeHtml(cfg.unlockSubtitle)}</p>
+                    </div>
+                    <button onclick="reset()">${escapeHtml(cfg.resetText)}</button>
+                </div>
+                
+                <div class="content-area">
+                    ${cfg.content}
+                </div>
+                
+                <div class="footer-text">${escapeHtml(cfg.footer)}</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PWD = '${escapeJs(cfg.password)}';
+        const KEY = 'vip_pass_config';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if(localStorage.getItem(KEY) === PWD) showContent();
+            document.getElementById('pwd').addEventListener('keypress', e => {
+                if(e.key === 'Enter') check();
+            });
+        });
+
+        function check() {
+            const pwd = document.getElementById('pwd').value.trim();
+            const err = document.getElementById('err');
+            const btn = document.getElementById('btn');
+            
+            err.style.display = 'none';
+            if(!pwd) { err.textContent = '请输入密码'; err.style.display = 'block'; return; }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-text"><span class="loading-spinner">⏳</span>验证中...</span>';
+            
+            setTimeout(() => {
+                if(pwd === PWD) {
+                    localStorage.setItem(KEY, pwd);
+                    showContent();
+                } else {
+                    err.textContent = '${escapeJs(cfg.errorText)}';
+                    err.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '${escapeJs(cfg.btnText)}';
+                }
+            }, 600);
+        }
+
+        function showContent() {
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('content-box').style.display = 'block';
+        }
+
+        function reset() {
+            localStorage.removeItem(KEY);
+            location.reload();
+        }
+    <\/script>
+</body>
+</html>`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(text));
+            return div.innerHTML;
+        }
+
+        function escapeJs(text) {
+            return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+        }
+
+        function updatePreview() {
+            const cfg = getConfig();
+            const html = generateSiteHTML(cfg);
+            const frame = document.getElementById('preview-frame');
+            frame.srcdoc = html;
+        }
+
+        function previewSite() {
+            updatePreview();
+            showToast('👁️ 预览已更新');
+        }
+
+        function exportSite() {
+            const cfg = getConfig();
+            const html = generateSiteHTML(cfg);
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'site.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('✅ 网站已导出！');
+        }
+
+        function resetConfig() {
+            if(confirm('确定要重置所有配置吗？')) {
+                document.getElementById('cfg-dateTitle').value = '今日爆款文章来袭';
+                document.getElementById('cfg-date').value = '2026-07-04';
+                document.getElementById('cfg-password').value = '0908';
+                document.getElementById('cfg-pageTitle').value = '176期精准推荐号';
+                document.getElementById('cfg-headerTitle').value = '176期精准推荐号';
+                document.getElementById('cfg-color1').value = '#b87333';
+                document.getElementById('cfg-color2').value = '#8b4513';
+                document.getElementById('cfg-mainTitle').value = '爆款文章';
+                document.getElementById('cfg-mainDesc').value = '输入密码即可查看今日爆款文章';
+                document.getElementById('cfg-cardTitle').value = '输入查看密码';
+                document.getElementById('cfg-placeholder').value = '请输入密码';
+                document.getElementById('cfg-btnText').value = '查看';
+                document.getElementById('cfg-errorText').value = '密码错误，请重试';
+                document.getElementById('cfg-price').value = '收米标准：38.00 米';
+                document.getElementById('cfg-info1').value = '付费好后联系客服拿密码';
+                document.getElementById('cfg-info2').value = '通过密码输入查看看今日资讯';
+                document.getElementById('cfg-info3').value = '长按二维码扫码付款';
+                document.getElementById('cfg-unlockTitle').value = '内容已解锁';
+                document.getElementById('cfg-unlockSubtitle').value = '第176期精准号码';
+                document.getElementById('cfg-resetText').value = '重新验证';
+                document.getElementById('cfg-content').value = `<h4>🎁 第176期精准号码</h4>
+<p>感谢您的支持！以下是本期推荐内容：</p>
+
+<h4>📌 本期推荐号码</h4>
+<ul>
+<li><strong>推荐一</strong>：05 12 18 24 30 35 + 08</li>
+<li><strong>推荐二</strong>：03 10 16 22 28 33 + 12</li>
+<li><strong>推荐三</strong>：07 14 20 26 32 36 + 06</li>
+</ul>
+
+<h4>💡 温馨提示</h4>
+<ul>
+<li>以上号码仅供参考，请理性对待</li>
+<li>如有任何问题，请联系客服</li>
+<li>感谢您的信任与支持</li>
+</ul>
+
+<h4>📞 联系方式</h4>
+<p>客服微信：xxxxxx</p>
+<p>工作时间：9:00 - 21:00</p>`;
+                document.getElementById('cfg-footer').value = '感谢您的支持！如有问题请联系客服';
+                updatePreview();
+                showToast('🔄 已重置为默认配置');
+            }
+        }
+
+        function switchTab(tab, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function showToast(msg, duration) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration || 2000);
+        }
+
+        let qrImageBase64 = null;
+
+        function handleQrImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                qrImageBase64 = e.target.result;
+                document.getElementById('qr-preview-img').src = qrImageBase64;
+                document.getElementById('qr-image-preview').style.display = 'block';
+                showToast('✅ 图片上传成功');
+            };
+            reader.onerror = function() {
+                showToast('❌ 图片读取失败');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeQrImage() {
+            qrImageBase64 = null;
+            document.getElementById('deploy-qr-image').value = '';
+            document.getElementById('qr-image-preview').style.display = 'none';
+            showToast('🗑️ 图片已移除');
+        }
+
+        function generateSiteHTMLWithEmbeddedImage(cfg) {
+            let html = generateSiteHTML(cfg);
+            if (qrImageBase64) {
+                html = html.replace('src="7f0e523db245d9c89476afaff8c4f769.jpg?v=1"', 'src="' + qrImageBase64 + '"');
+            }
+            return html;
+        }
+
+        function setStepStatus(step, status) {
+            const stepEl = document.getElementById('step-' + step);
+            stepEl.className = 'deploy-step ' + status;
+            const icon = stepEl.querySelector('.deploy-step-icon');
+            if (status === 'done') {
+                icon.textContent = '✓';
+            } else if (status === 'error') {
+                icon.textContent = '✕';
+            } else if (status === 'active') {
+                icon.innerHTML = '<span class="spinning">⏳</span>';
+            } else {
+                icon.textContent = step;
+            }
+        }
+
+        function resetDeploySteps() {
+            for (let i = 1; i <= 5; i++) {
+                setStepStatus(i, '');
+            }
+            document.getElementById('deploy-steps').style.display = 'none';
+            document.getElementById('deploy-result').classList.remove('show');
+        }
+
+        async function githubApi(url, token, options = {}) {
+            const res = await fetch('https://api.github.com' + url, {
+                ...options,
+                headers: {
+                    'Authorization': 'token ' + token,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.message || 'GitHub API 错误: ' + res.status);
+            }
+            return data;
+        }
+
+        async function createRepo(username, token, repoName, description, isPrivate) {
+            try {
+                const data = await githubApi('/user/repos', token, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: repoName,
+                        description: description,
+                        private: isPrivate,
+                        auto_init: false
+                    })
+                });
+                return data;
+            } catch (e) {
+                if (e.message.includes('name already exists')) {
+                    const data = await githubApi('/repos/' + username + '/' + repoName, token);
+                    return data;
+                }
+                throw e;
+            }
+        }
+
+        async function createFile(username, token, repoName, path, content, message) {
+            const contentBase64 = btoa(unescape(encodeURIComponent(content)));
+            let sha = null;
+            try {
+                const existing = await githubApi('/repos/' + username + '/' + repoName + '/contents/' + path, token);
+                sha = existing.sha;
+            } catch (e) {
+            }
+            const body = {
+                message: message,
+                content: contentBase64
+            };
+            if (sha) {
+                body.sha = sha;
+            }
+            return await githubApi('/repos/' + username + '/' + repoName + '/contents/' + path, token, {
+                method: 'PUT',
+                body: JSON.stringify(body)
+            });
+        }
+
+        async function clearRepoContents(username, token, repoName) {
+            const tree = await githubApi('/repos/' + username + '/' + repoName + '/git/trees/main?recursive=1', token);
+            const files = (tree.tree || []).filter(item => item.type === 'blob');
+            for (const file of files) {
+                try {
+                    const fileObj = await githubApi('/repos/' + username + '/' + repoName + '/contents/' + file.path, token);
+                    await githubApi('/repos/' + username + '/' + repoName + '/contents/' + file.path, token, {
+                        method: 'DELETE',
+                        body: JSON.stringify({
+                            message: 'Remove old file: ' + file.path,
+                            sha: fileObj.sha
+                        })
+                    });
+                } catch (e) {
+                    console.warn('删除文件失败:', file.path, e.message);
+                }
+            }
+            return files.length;
+        }
+
+        async function enablePages(username, token, repoName) {
+            try {
+                return await githubApi('/repos/' + username + '/' + repoName + '/pages', token, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        source: {
+                            branch: 'main',
+                            path: '/'
+                        }
+                    })
+                });
+            } catch (e) {
+                if (e.message.includes('already exists') || e.message.includes('exists')) {
+                    return await githubApi('/repos/' + username + '/' + repoName + '/pages', token, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            source: {
+                                branch: 'main',
+                                path: '/'
+                            }
+                        })
+                    });
+                }
+                try {
+                    const pages = await githubApi('/repos/' + username + '/' + repoName + '/pages', token);
+                    return pages;
+                } catch (e2) {
+                    try {
+                        return await githubApi('/repos/' + username + '/' + repoName + '/pages', token, {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                source: {
+                                    branch: 'main',
+                                    path: '/'
+                                }
+                            })
+                        });
+                    } catch (e3) {
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        async function getPagesDeployment(username, token, repoName) {
+            try {
+                const deployments = await githubApi('/repos/' + username + '/' + repoName + '/pages/deployments', token);
+                return deployments;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function deployToGithub() {
+            const username = document.getElementById('deploy-username').value.trim();
+            const token = document.getElementById('deploy-token').value.trim();
+            const repoName = document.getElementById('deploy-repo').value.trim();
+            const description = document.getElementById('deploy-desc').value.trim();
+            const isPrivate = document.getElementById('deploy-private').checked;
+            const mode = getDeployMode();
+
+            if (!username) {
+                showToast('❌ 请输入 GitHub 用户名');
+                return;
+            }
+            if (!token) {
+                showToast('❌ 请输入 GitHub Token');
+                return;
+            }
+            if (!repoName) {
+                showToast('❌ 请输入仓库名称');
+                return;
+            }
+            if (!qrImageBase64) {
+                showToast('❌ 请先上传二维码图片');
+                return;
+            }
+
+            const btn = document.getElementById('deploy-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinning">🚀</span> 部署中...';
+
+            resetDeploySteps();
+            document.getElementById('deploy-steps').style.display = 'block';
+
+            try {
+                let repo;
+                setStepStatus(1, 'active');
+                if (mode === 'new') {
+                    repo = await createRepo(username, token, repoName, description, isPrivate);
+                } else {
+                    repo = await githubApi('/repos/' + username + '/' + repoName, token);
+                }
+                setStepStatus(1, 'done');
+
+                setStepStatus(2, 'active');
+                try {
+                    const removedCount = await clearRepoContents(username, token, repoName);
+                    console.log('已删除旧文件数:', removedCount);
+                } catch (e) {
+                    console.warn('清空仓库提示:', e.message);
+                }
+                setStepStatus(2, 'done');
+
+                setStepStatus(3, 'active');
+                const cfg = getConfig();
+                const html = generateSiteHTMLWithEmbeddedImage(cfg);
+                await createFile(username, token, repoName, 'index.html', html, 'Deploy site via generator');
+                setStepStatus(3, 'done');
+
+                setStepStatus(4, 'active');
+                try {
+                    await enablePages(username, token, repoName);
+                } catch (e) {
+                    console.warn('Pages 启用提示:', e.message);
+                }
+                setStepStatus(4, 'done');
+
+                setStepStatus(5, 'active');
+                const pagesUrl = 'https://' + username + '.github.io/' + repoName + '/';
+                document.getElementById('deploy-url').href = pagesUrl;
+                document.getElementById('deploy-url').textContent = pagesUrl;
+                document.getElementById('deploy-result').classList.add('show');
+                setStepStatus(5, 'done');
+
+                showToast('✅ 部署成功！');
+                saveDeployConfig(username, repoName);
+
+            } catch (e) {
+                console.error(e);
+                const friendlyMsg = getErrorMessage(e);
+                showToast('❌ 部署失败: ' + friendlyMsg, 5000);
+                for (let i = 1; i <= 5; i++) {
+                    const stepEl = document.getElementById('step-' + i);
+                    if (stepEl.classList.contains('active')) {
+                        setStepStatus(i, 'error');
+                        break;
+                    }
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 一键部署到 GitHub Pages';
+            }
+        }
+
+        function saveDeployConfig(username, repoName) {
+            localStorage.setItem('deploy_username', username);
+            localStorage.setItem('deploy_repo', repoName);
+        }
+
+        function loadDeployConfig() {
+            const username = localStorage.getItem('deploy_username');
+            const repo = localStorage.getItem('deploy_repo');
+            if (username) document.getElementById('deploy-username').value = username;
+            if (repo) document.getElementById('deploy-repo').value = repo;
+        }
+
+        function copyDeployUrl() {
+            const url = document.getElementById('deploy-url').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('📋 链接已复制');
+            }).catch(() => {
+                showToast('❌ 复制失败，请手动复制');
+            });
+        }
+
+        function onDeployModeChange() {
+            const mode = document.querySelector('input[name="deploy-mode"]:checked').value;
+            const descGroup = document.getElementById('repo-desc-group');
+            const privateGroup = document.getElementById('repo-private-group');
+            const step1Text = document.getElementById('step-1-text');
+            const tip = document.getElementById('deploy-mode-tip');
+
+            if (mode === 'existing') {
+                descGroup.style.display = 'none';
+                privateGroup.style.display = 'none';
+                step1Text.textContent = '检查仓库是否存在...';
+                tip.innerHTML = '💡 请确保已在 GitHub 网页端手动创建好仓库，然后填写仓库名称';
+            } else {
+                descGroup.style.display = 'block';
+                privateGroup.style.display = 'block';
+                step1Text.textContent = '创建 GitHub 仓库...';
+                tip.innerHTML = '💡 推荐使用「上传到已有仓库」，提前在 GitHub 网页端手动创建好空仓库，更稳定';
+            }
+        }
+
+        function getDeployMode() {
+            return document.querySelector('input[name="deploy-mode"]:checked').value;
+        }
+
+        function getErrorMessage(error) {
+            const msg = error.message || '';
+            if (msg.includes('Bad credentials') || msg.includes('401')) {
+                return 'Token 无效，请检查是否使用 Classic Token 且勾选了 repo 权限';
+            }
+            if (msg.includes('Not Found') || msg.includes('404')) {
+                return '仓库不存在，请先在 GitHub 网页端创建仓库，或检查用户名和仓库名是否正确';
+            }
+            if (msg.includes('name already exists')) {
+                return '仓库名已存在，请换一个名称，或选择「上传到已有仓库」模式';
+            }
+            if (msg.includes('Forbidden') || msg.includes('403')) {
+                return '权限不足，请确保 Token 有 repo 权限，且账号未被风控限制';
+            }
+            if (msg.includes('limit') || msg.includes('rate')) {
+                return 'API 调用达到上限，请稍后再试';
+            }
+            return msg;
+        }
+
+        loadDeployConfig();
+        updatePreview();
+    </script>
+</body>
+</html>
